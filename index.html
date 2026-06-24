@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="icon-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Wordle Solver</title>
+<style>
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: #121213;
+    color: #fafafa;
+    font-family: "Figtree", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+}
+
+h1 {
+    margin-bottom: 25px;
+}
+
+.controls {
+    scale: 0.75;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.controls input,
+.controls button {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+
+    background: #2c2c2e;
+    color: white;
+
+    font-size: 15px;
+}
+
+.controls button {
+    cursor: pointer;
+    transition: .2s;
+}
+
+.controls button:hover {
+    background: #404045;
+}
+
+#grid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 8px;
+}
+
+.cell {
+    width: 58px;
+    height: 58px;
+
+    border: 2px solid #3a3a3c;
+    border-radius: 12px;
+
+    background: #121213;
+    color: white;
+
+    text-align: center;
+
+    font-size: 30px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    outline: none;
+
+    transition:
+        transform .15s,
+        background .25s,
+        border-color .25s,
+        box-shadow .25s;
+}
+
+.cell:hover {
+    transform: scale(1.03);
+}
+
+.cell:focus {
+    transform: scale(1.12);
+    border-radius: 16px;
+
+    border-color: #55d3a594;
+
+    box-shadow:
+        0 0 0 3px rgba(83,141,255,.35);
+}
+
+.cell:active {
+    transform: scale(.95);
+}
+
+.gray {
+    background: #3a3a3c;
+    border-color: #3a3a3c;
+}
+
+.yellow {
+    background: #dfc862;
+    border-color: #dfc862;
+}
+
+.green {
+    background: #86c379;
+    border-color: #86c379;
+}
+
+#palette {
+    position: fixed;
+    right: 30px;
+    top: 100px;
+
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+
+    background: #202124;
+
+    padding: 12px;
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,.5);
+}
+
+#palette button {
+    border: none;
+    border-radius: 8px;
+
+    padding: 10px;
+
+    background: #303134;
+
+    color: white;
+
+    cursor: pointer;
+}
+
+#palette button:hover {
+    background: #444;
+}
+
+#results {
+    width: min(800px,90vw);
+
+    margin-top: 25px;
+
+    padding: 20px;
+
+    background: #1b1b1d;
+
+    border: 1px solid #3a3a3c;
+    border-radius: 14px;
+
+    white-space: pre-wrap;
+
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+body.paint-gray,
+body.paint-yellow,
+body.paint-green {
+    cursor: crosshair;
+}
+</style>
+
+  <img src="logo.png" rel="icon" type="image/png">
+</head>
+
+<body>
+<div class="controls">
+
+    <label>
+        Word Length
+        <input id="w" type="number" value="5" min="1">
+    </label>
+
+    <label>
+        Attempts
+        <input id="h" type="number" value="6" min="1">
+    </label>
+
+    <button onclick="makeGrid()">
+        Create Grid
+    </button>
+
+    <button onclick="analyze()">
+        Analyze
+    </button>
+
+    <button id="brushButton">
+      <img src="palette.svg" style="width: 27px; height: 27px; vertical-align: middle; margin-right: 3px;">
+        Paint
+    </button>
+
+</div>
+
+<div id="palette">
+    <button data-color="gray"><img src="grae.svg" style="width: 27px; height: 27px; vertical-align: middle;"></button>
+    <button data-color="yellow"><img src="yelo.svg" style="width: 27px; height: 27px; vertical-align: middle;"></button>
+    <button data-color="green"><img src="mido.svg" style="width: 27px; height: 27px; vertical-align: middle;"></button>
+    <button data-color="">🆇</button>
+</div>
+
+<div id="grid"></div>
+
+<h3>Results</h3>
+<div id="results">
+[possible words]
+</div>
+
+<script>
+let grid = [],
+    colors = [],
+    selected = null,
+    paintColor = null,
+    painting = false;
+
+const wInput = document.getElementById("w"),
+      hInput = document.getElementById("h"),
+      gridDiv = document.getElementById("grid"),
+      results = document.getElementById("results"),
+      palette = document.getElementById("palette"),
+      brushButton = document.getElementById("brushButton");
+
+function makeGrid() {
+    const w = Number(wInput.value);
+    const h = Number(hInput.value);
+
+    grid = Array.from({length:h}, () => Array(w).fill(""));
+    colors = Array.from({length:h}, () => Array(w).fill("gray"));
+
+    let html = "<table>";
+
+    for (let r = 0; r < h; r++) {
+        html += "<tr>";
+
+        for (let c = 0; c < w; c++) {
+            html += `
+            <td>
+                <input
+                    class="cell gray"
+                    maxlength="1"
+                    data-r="${r}"
+                    data-c="${c}">
+            </td>`;
+        }
+
+        html += "</tr>";
+    }
+
+    html += "</table>";
+    gridDiv.innerHTML = html;
+
+    document.querySelectorAll(".cell").forEach(cell => {
+        cell.addEventListener("focus", () => selected = cell);
+        cell.addEventListener("click", () => selected = cell);
+        cell.addEventListener("mousedown", () => paint(cell));
+        cell.addEventListener("mouseenter", () => {
+            if (painting)
+                paint(cell);
+        });
+    });
+
+    const first = document.querySelector(".cell");
+
+    if (first)
+        first.focus();
+}
+
+function move(dr, dc) {
+    if (!selected)
+        return;
+
+    const r = Number(selected.dataset.r) + dr;
+    const c = Number(selected.dataset.c) + dc;
+
+    const next = document.querySelector(
+        `[data-r="${r}"][data-c="${c}"]`
+    );
+
+    if (next)
+        next.focus();
+}
+
+document.addEventListener("keydown", e => {
+    if (!selected)
+        return;
+
+    const r = Number(selected.dataset.r);
+    const c = Number(selected.dataset.c);
+
+    if (/^[a-zA-Z]$/.test(e.key)) {
+        selected.value = e.key.toUpperCase();
+        grid[r][c] = e.key.toLowerCase();
+
+        move(0,1);
+        e.preventDefault();
+    }
+
+    if (e.key === "ArrowLeft") {
+        move(0,-1);
+        e.preventDefault();
+    }
+
+    if (e.key === "ArrowRight") {
+        move(0,1);
+        e.preventDefault();
+    }
+
+    if (e.key === "ArrowUp") {
+        move(-1,0);
+        e.preventDefault();
+    }
+
+    if (e.key === "ArrowDown") {
+        move(1,0);
+        e.preventDefault();
+    }
+
+    if (
+        e.key === "Backspace" ||
+        e.key === "Delete"
+    ) {
+        if (grid[r][c]) {
+            selected.value = "";
+            grid[r][c] = "";
+        }
+        else if (c === 0 && r > 0) {
+            const prevRow = r - 1;
+            let target = 0;
+
+            for (let i = grid[prevRow].length - 1; i >= 0; i--) {
+                if (grid[prevRow][i]) {
+                    target = i;
+                    break;
+                }
+            }
+
+            if (!grid[prevRow].some(x => x))
+                target = grid[prevRow].length - 1;
+
+            const next = document.querySelector(
+                `[data-r="${prevRow}"][data-c="${target}"]`
+            );
+
+            if (next)
+                next.focus();
+        }
+        else {
+            move(0,-1);
+        }
+
+        e.preventDefault();
+    }
+
+    if (e.key === "Enter") {
+        move(1,0);
+        e.preventDefault();
+    }
+});
+
+document.addEventListener(
+    "mousedown",
+    () => painting = true
+);
+
+document.addEventListener(
+    "mouseup",
+    () => painting = false
+);
+
+function paint(cell) {
+    selected = cell;
+
+    if (!paintColor)
+        return;
+
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+
+    colors[r][c] = paintColor;
+
+    cell.classList.remove(
+        "gray",
+        "yellow",
+        "green"
+    );
+
+    cell.classList.add(paintColor);
+}
+
+brushButton.onclick = () => {
+    palette.style.display =
+        palette.style.display === "flex"
+        ? "none"
+        : "flex";
+};
+
+document.querySelectorAll("#palette button")
+.forEach(button => {
+    button.onclick = () => {
+        paintColor =
+            button.dataset.color || null;
+
+        document.body.classList.remove(
+            "paint-gray",
+            "paint-yellow",
+            "paint-green"
+        );
+
+        if (paintColor)
+            document.body.classList.add(
+                "paint-" + paintColor
+            );
+    };
+});
+
+function analyze() {
+    if (!grid.length)
+        return;
+
+    results.textContent = "Searching...";
+
+    fetch(
+        "https://RustyPie-WordleSolver.hf.space/solve",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type":
+                    "application/json"
+            },
+            body: JSON.stringify({
+                grid: grid,
+                colors: colors
+            })
+        }
+    )
+    .then(r => r.json())
+    .then(data => {
+        results.textContent =
+            `Found ${data.count} words:\n\n`
+            + data.words.join(", ");
+    })
+    .catch(err => {
+        console.error(err);
+        results.textContent =
+            "Backend not reachable.";
+    });
+}
+
+makeGrid();
+</script>
+
+</body>
+</html>
