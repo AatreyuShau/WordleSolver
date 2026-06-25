@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" type="image/png" href="icon-logo.png">
+<link rel="icon" type="image/png" href="icon-logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <title>Wordle Solver</title>
 <style>
-
 body {
     margin: 0;
     min-height: 100vh;
@@ -42,6 +41,7 @@ h1 {
 }
 
 .controls input,
+.controls select,
 .controls button {
     padding: 12px 16px;
     border: none;
@@ -51,6 +51,12 @@ h1 {
     color: white;
 
     font-size: 15px;
+}
+
+.controls select {
+    cursor: pointer;
+    height: 48px;
+    transform: translateY(9px);
 }
 
 .controls button {
@@ -186,18 +192,114 @@ table {
     overflow-y: auto;
 }
 
+#vk{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:-320px;
+    background:#121213;
+    padding:15px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:center;
+    transition:bottom .35s ease;
+    z-index:9999;
+    box-shadow:0 -10px 30px rgba(0,0,0,.5);
+}
+#vk.open{
+    bottom:0;
+}
+.vk-row{
+    display:flex;
+    gap:6px;
+}
+.vk-key,.vk-wide{
+    border:none;
+    border-radius:8px;
+    background:#818384;
+    color:white;
+    font-weight:700;
+    height:58px;
+    cursor:pointer;
+    transition:
+    transform .15s,
+    background .25s,
+    box-shadow .25s;
+}
+.vk-key{
+    width:43px;
+}
+.vk-wide{
+    width:75px;
+}
+.vk-key:hover,.vk-wide:hover{
+    transform:translateY(-3px) scale(1.05);
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
+}
+.vk-key:active,.vk-wide:active{
+    transform:scale(.93);
+}
+.vk-yellow{
+    background:#dfc862!important;
+}
+.vk-green{
+    background:#86c379!important;
+}
+
+body{
+    cursor:url("cursors/cursor.svg") 8 8,auto;
+}
+
+body,
+body *{
+    cursor:none !important;
+}
+
 body.paint-gray,
 body.paint-yellow,
-body.paint-green {
-    cursor: crosshair;
+body.paint-green{
+    cursor:none;
+}
+body.paint-gray * ,
+body.paint-yellow * ,
+body.paint-green *{
+    cursor:none!important;
+}
+
+#mouseCursor{
+    position:fixed;
+    width:32px;
+    height:32px;
+    pointer-events:none;
+    z-index:999998;
+    left:0;
+    top:0;
+    transform:translate(-2px,-2px);
+}
+
+#brushCursor{
+    position:fixed;
+    width:36px;
+    height:36px;
+    pointer-events:none;
+    z-index:999999;
+    left:0;
+    top:0;
+    opacity:0;
+    transform:translate(-4px,-28px);
+    transition:opacity .15s;
 }
 </style>
 
-  <img src="logo.png" rel="icon" type="image/png">
+  <img src="logo.svg" rel="icon" type="image/png">
 </head>
 
 <body>
 <div class="controls">
+    <button id="keyboardButton">
+        <img src="keys.svg" style="width: 36px; height: 36px; vertical-align: middle; margin-right: 0px;">
+    </button>
 
     <label>
         Word Length
@@ -218,17 +320,21 @@ body.paint-green {
     </button>
 
     <button id="brushButton">
-      <img src="palette.svg" style="width: 27px; height: 27px; vertical-align: middle; margin-right: 3px;">
-        Paint
+      <img src="palette.svg" style="width: 36px; height: 36px; vertical-align: middle; margin-right: 0px;">
     </button>
-
+    
+    <select id="brushTheme">
+        <option value="default">Default</option>
+        <option value="splat">Splat</option>
+        <option value="spot">Spot</option>
+    </select>
 </div>
 
 <div id="palette">
-    <button data-color="gray"><img src="grae.svg" style="width: 27px; height: 27px; vertical-align: middle;"></button>
-    <button data-color="yellow"><img src="yelo.svg" style="width: 27px; height: 27px; vertical-align: middle;"></button>
-    <button data-color="green"><img src="mido.svg" style="width: 27px; height: 27px; vertical-align: middle;"></button>
-    <button data-color="">🆇</button>
+    <button data-color="gray"><img src="grae.svg" style="width: 48px; height: 48px; vertical-align: middle;"></button>
+    <button data-color="yellow"><img src="yelo.svg" style="width: 48px; height: 48px; vertical-align: middle;"></button>
+    <button data-color="green"><img src="mido.svg" style="width: 48px; height: 48px; vertical-align: middle;"></button>
+    <button data-color=""><img src="empty.svg" style="width: 48px; height: 48px; vertical-align: middle;"></button>
 </div>
 
 <div id="grid"></div>
@@ -237,6 +343,46 @@ body.paint-green {
 <div id="results">
 [possible words]
 </div>
+
+<div id="vk">
+<div class="vk-row">
+<button class="vk-key">Q</button>
+<button class="vk-key">W</button>
+<button class="vk-key">E</button>
+<button class="vk-key">R</button>
+<button class="vk-key">T</button>
+<button class="vk-key">Y</button>
+<button class="vk-key">U</button>
+<button class="vk-key">I</button>
+<button class="vk-key">O</button>
+<button class="vk-key">P</button>
+</div>
+<div class="vk-row">
+<button class="vk-key">A</button>
+<button class="vk-key">S</button>
+<button class="vk-key">D</button>
+<button class="vk-key">F</button>
+<button class="vk-key">G</button>
+<button class="vk-key">H</button>
+<button class="vk-key">J</button>
+<button class="vk-key">K</button>
+<button class="vk-key">L</button>
+</div>
+<div class="vk-row">
+<button class="vk-wide" data-key="Enter">ENTER</button>
+<button class="vk-key">Z</button>
+<button class="vk-key">X</button>
+<button class="vk-key">C</button>
+<button class="vk-key">V</button>
+<button class="vk-key">B</button>
+<button class="vk-key">N</button>
+<button class="vk-key">M</button>
+<button class="vk-wide" data-key="Backspace">⌫</button>
+</div>
+</div>
+
+<img id="mouseCursor" src="cursors/cursor.svg">
+<img id="brushCursor" src="brush.svg">
 
 <script>
 let grid = [],
@@ -250,7 +396,10 @@ const wInput = document.getElementById("w"),
       gridDiv = document.getElementById("grid"),
       results = document.getElementById("results"),
       palette = document.getElementById("palette"),
-      brushButton = document.getElementById("brushButton");
+      brushTheme=document.getElementById("brushTheme"),
+      brushButton = document.getElementById("brushButton"),
+      keyboardButton=document.getElementById("keyboardButton"),
+      vk=document.getElementById("vk");
 
 function makeGrid() {
     const w = Number(wInput.value);
@@ -291,11 +440,96 @@ function makeGrid() {
         });
     });
 
+    document.querySelectorAll(".vk-key,.vk-wide").forEach(k=>{
+        k.classList.remove("vk-yellow","vk-green");
+        k.style.background="";
+    });
+
     const first = document.querySelector(".cell");
 
     if (first)
         first.focus();
 }
+
+const brushCursor = document.getElementById("brushCursor");
+const mouseCursor = document.getElementById("mouseCursor");
+
+document.addEventListener("mousemove",e=>{
+    mouseCursor.style.left=e.clientX + "px";
+    mouseCursor.style.top=e.clientY + "px";
+    brushCursor.style.left=(e.clientX-12)+"px";
+    brushCursor.style.top=(e.clientY+18)+"px";
+});
+
+function updateBrushCursor(){
+    if(paintColor){
+        brushCursor.style.opacity="1";
+        mouseCursor.style.opacity="0";
+    }
+    else{
+        brushCursor.style.opacity="0";
+        mouseCursor.style.opacity="1";
+    }
+}
+
+function setCursor(type){
+    if(paintColor){
+        mouseCursor.style.opacity = "0";
+        return;
+    }
+
+    mouseCursor.style.opacity = "1";
+    if(type==="pointer"){
+        mouseCursor.src="cursors/pointer.svg";
+        mouseCursor.style.width="32px";
+        mouseCursor.style.height="32px";
+    }
+    else if(type==="text"){
+        mouseCursor.src="cursors/text.svg";
+        mouseCursor.style.width="38px";
+        mouseCursor.style.height="38px";
+    }
+    else if(type==="grab"){
+        mouseCursor.src="cursors/grab.svg";
+        mouseCursor.style.width="32px";
+        mouseCursor.style.height="32px";
+    }
+    else{
+        mouseCursor.src="cursors/cursor.svg";
+        mouseCursor.style.transform="translate(-20px,-15px)";
+        mouseCursor.style.width="48px";
+        mouseCursor.style.height="48px";
+    }
+}
+
+document.addEventListener("mouseover",e=>{
+    if(paintColor)
+        return;
+    const t = e.target;
+
+    if(
+        t.matches(
+            "button,select,.vk-key,.vk-wide"
+        )
+    ){
+        setCursor("pointer");
+    }
+    else if(
+        t.matches(
+            "input,.cell"
+        )
+    ){
+        setCursor("text");
+    }
+    else if(
+        t.closest("#grid")
+    ){
+        setCursor("grab");
+    }
+    else{
+        setCursor("default");
+    }
+});
 
 function move(dr, dc) {
     if (!selected)
@@ -431,6 +665,8 @@ document.querySelectorAll("#palette button")
     button.onclick = () => {
         paintColor =
             button.dataset.color || null;
+        
+        brushThemeValue=brushTheme.value;
 
         document.body.classList.remove(
             "paint-gray",
@@ -442,13 +678,38 @@ document.querySelectorAll("#palette button")
             document.body.classList.add(
                 "paint-" + paintColor
             );
+        
+        if(paintColor==="gray")
+            brushCursor.src=brushThemeValue+"/"+ "brush-grey.svg";
+
+        if(paintColor==="yellow")
+            brushCursor.src=brushThemeValue+"/"+ "brush-yellow.svg";
+
+        if(paintColor==="green")
+            brushCursor.src=brushThemeValue+"/"+ "brush-green.svg";
+
+        updateBrushCursor();
+    };
+});
+
+keyboardButton.onclick=()=>{
+    vk.classList.toggle("open");
+};
+
+document.querySelectorAll(".vk-key,.vk-wide").forEach(key=>{
+    key.onclick=()=>{
+        const k=key.dataset.key||key.textContent;
+        document.dispatchEvent(
+            new KeyboardEvent("keydown",{
+                key:k==="⌫"?"Backspace":k
+            })
+        );
     };
 });
 
 function analyze() {
     if (!grid.length)
         return;
-
     results.textContent = "Searching...";
 
     fetch(
@@ -467,9 +728,36 @@ function analyze() {
     )
     .then(r => r.json())
     .then(data => {
-        results.textContent =
-            `Found ${data.count} words:\n\n`
-            + data.words.join(", ");
+        results.textContent=
+        `Found ${data.count} words:\n\n`
+        +data.words.join(", ");
+
+        document.querySelectorAll(".vk-key,.vk-wide").forEach(k=>{
+            k.classList.remove("vk-yellow","vk-green");
+        });
+
+        for(let r=0;r<colors.length;r++){
+            for(let c=0;c<colors[r].length;c++){
+                let letter=grid[r][c];
+                if(!letter) continue;
+
+                const key=[...document.querySelectorAll(".vk-key")]
+                .find(k=>k.textContent===letter.toUpperCase());
+
+                if(!key) continue;
+
+                if(colors[r][c]==="green"){
+                    key.classList.remove("vk-yellow");
+                    key.classList.add("vk-green");
+                }
+                else if(
+                colors[r][c]==="yellow" &&
+                !key.classList.contains("vk-green")
+                ){
+                    key.classList.add("vk-yellow");
+                }
+            }
+        }
     })
     .catch(err => {
         console.error(err);
